@@ -1,0 +1,54 @@
+# ─── Python ───────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+
+# ─── Ambientes virtuais ───────────────────────
+venv/
+env/
+.env
+.venv/
+ENV/
+
+# ─── Modelos (muito grandes para o Git) ───────
+*.pt
+*.onnx
+*.weights
+*.h5
+models/
+
+# ─── Imagens / Screenshots ────────────────────
+*.jpg
+*.jpeg
+*.png
+*.gif
+screenshot_*.jpg
+
+# ─── Logs ─────────────────────────────────────
+logs/
+*.log
+
+# ─── IDEs ─────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ─── OS ───────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Zips ─────────────────────────────────────
+*.zip
+*.tar.gz
+
+# ─── Ultralytics / YOLO ───────────────────────
+runs/
+ultralytics/
+datasets/

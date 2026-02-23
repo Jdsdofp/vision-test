@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartX PPE Detection</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background: #161b22;
+      padding: 16px 24px;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 20px; font-weight: 600; }
+    header span { font-size: 13px; color: #8b949e; }
+    .badge {
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-online { background: #1f4b2e; color: #3fb950; }
+    .badge-offline { background: #3d1f1f; color: #f85149; }
+
+    .main { display: flex; flex: 1; gap: 0; }
+
+    .video-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      gap: 16px;
+    }
+
+    .video-container {
+      position: relative;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid #30363d;
+      max-width: 800px;
+      width: 100%;
+    }
+
+    #videoEl { width: 100%; display: block; }
+    #outputCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    canvas { display: block; }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.85; }
+    #btnStart { background: #238636; color: #fff; }
+    #btnStop { background: #da3633; color: #fff; }
+    #btnStop:disabled { background: #3d1f1f; color: #8b949e; cursor: not-allowed; opacity: 1; }
+
+    .sidebar {
+      width: 320px;
+      background: #161b22;
+      border-left: 1px solid #30363d;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .card h3 { font-size: 13px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .status-ok { background: #0d2818; border: 1px solid #238636; color: #3fb950; }
+    .status-fail { background: #2d1011; border: 1px solid #da3633; color: #f85149; }
+    .status-neutral { background: #1c2128; border: 1px solid #30363d; color: #8b949e; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-ok { background: #3fb950; box-shadow: 0 0 8px #3fb950; }
+    .dot-fail { background: #f85149; box-shadow: 0 0 8px #f85149; animation: blink 0.8s infinite; }
+    .dot-neutral { background: #8b949e; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .detection-list { display: flex; flex-direction: column; gap: 8px; }
+    .det-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .det-ok { background: #0d2818; color: #3fb950; }
+    .det-violation { background: #2d1011; color: #f85149; font-weight: 600; }
+    .det-info { background: #1c2128; color: #8b949e; }
+    .conf { font-size: 11px; opacity: 0.7; }
+
+    .fps-counter { font-size: 20px; font-weight: 700; color: #58a6ff; }
+    .fps-label { font-size: 12px; color: #8b949e; }
+
+    .ppe-config label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .ppe-config input[type=checkbox] { accent-color: #58a6ff; width: 14px; height: 14px; }
+
+    .log-box {
+      background: #010409;
+      border: 1px solid #21262d;
+      border-radius: 6px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 11px;
+      height: 120px;
+      overflow-y: auto;
+      color: #8b949e;
+    }
+    .log-box .log-ok { color: #3fb950; }
+    .log-box .log-err { color: #f85149; }
+    .log-box .log-info { color: #58a6ff; }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="10" stroke="#58a6ff" stroke-width="2"/>
+    <path d="M9 12l2 2 4-4" stroke="#3fb950" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <h1>SmartX PPE Detection</h1>
+  <span id="wsStatus" class="badge badge-offline">● Desconectado</span>
+</header>
+
+<div class="main">
+  <div class="video-section">
+    <div class="video-container">
+      <video id="videoEl" autoplay muted playsinline></video>
+      <canvas id="outputCanvas"></canvas>
+    </div>
+    <div class="controls">
+      <button id="btnStart" onclick="startDetection()">▶ Iniciar Câmera</button>
+      <button id="btnStop" onclick="stopDetection()" disabled>■ Parar</button>
+    </div>
+    <canvas id="hiddenCanvas" style="display:none"></canvas>
+  </div>
+
+  <div class="sidebar">
+    <!-- Status de conformidade -->
+    <div id="complianceStatus" class="status-indicator status-neutral">
+      <div class="dot dot-neutral"></div>
+      Aguardando câmera...
+    </div>
+
+    <!-- FPS -->
+    <div class="card" style="text-align:center">
+      <div class="fps-counter" id="fpsDisplay">0</div>
+      <div class="fps-label">FPS de detecção</div>
+    </div>
+
+    <!-- Detecções -->
+    <div class="card">
+      <h3>🔍 Detecções</h3>
+      <div class="detection-list" id="detectionList">
+        <div class="det-item det-info">Nenhuma detecção</div>
+      </div>
+    </div>
+
+    <!-- EPIs obrigatórios -->
+    <div class="card">
+      <h3>⚙ EPIs Obrigatórios</h3>
+      <div class="ppe-config" id="ppeConfig">
+        <label><input type="checkbox" value="Hardhat" checked> Capacete (Hardhat)</label>
+        <label><input type="checkbox" value="Safety Vest" checked> Colete (Safety Vest)</label>
+        <label><input type="checkbox" value="Mask"> Máscara (Mask)</label>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="card">
+      <h3>📋 Log</h3>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let ws = null;
+  let videoStream = null;
+  let isRunning = false;
+  let frameCount = 0;
+  let lastFpsTime = Date.now();
+  let animFrameId = null;
+
+  const video = document.getElementById('videoEl');
+  const hiddenCanvas = document.getElementById('hiddenCanvas');
+  const outputCanvas = document.getElementById('outputCanvas');
+  const ctx = hiddenCanvas.getContext('2d');
+  const outCtx = outputCanvas.getContext('2d');
+
+  function log(msg, type = 'info') {
+    const box = document.getElementById('logBox');
+    const t = new Date().toLocaleTimeString();
+    box.innerHTML += `<div class="log-${type}">[${t}] ${msg}</div>`;
+    box.scrollTop = box.scrollHeight;
+    if (box.children.length > 50) box.removeChild(box.firstChild);
+  }
+
+  function getRequiredPPE() {
+    return Array.from(document.querySelectorAll('#ppeConfig input:checked')).map(i => i.value);
+  }
+
+  async function startDetection() {
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+      video.srcObject = videoStream;
+      await video.play();
+
+      // Conecta WebSocket
+      const wsUrl = `ws://${location.host}/ws/camera`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        document.getElementById('wsStatus').className = 'badge badge-online';
+        document.getElementById('wsStatus').textContent = '● Conectado';
+        log('WebSocket conectado', 'ok');
+        isRunning = true;
+        document.getElementById('btnStart').disabled = true;
+        document.getElementById('btnStop').disabled = false;
+        sendFrame();
+      };
+
+      ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        updateUI(data);
+        frameCount++;
+        if (isRunning) sendFrame();
+      };
+
+      ws.onerror = () => log('Erro WebSocket', 'err');
+      ws.onclose = () => {
+        document.getElementById('wsStatus').className = 'badge badge-offline';
+        document.getElementById('wsStatus').textContent = '● Desconectado';
+        log('WebSocket desconectado', 'err');
+      };
+
+      // FPS counter
+      setInterval(() => {
+        const now = Date.now();
+        const fps = Math.round(frameCount / ((now - lastFpsTime) / 1000));
+        document.getElementById('fpsDisplay').textContent = fps;
+        frameCount = 0;
+        lastFpsTime = now;
+      }, 1000);
+
+      log('Câmera iniciada', 'ok');
+    } catch (err) {
+      log(`Erro: ${err.message}`, 'err');
+      alert('Não foi possível acessar a câmera: ' + err.message);
+    }
+  }
+
+  function sendFrame() {
+    if (!isRunning || !ws || ws.readyState !== WebSocket.OPEN) return;
+    
+    hiddenCanvas.width = video.videoWidth || 640;
+    hiddenCanvas.height = video.videoHeight || 480;
+    ctx.drawImage(video, 0, 0);
+    
+    const imageData = hiddenCanvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+    ws.send(JSON.stringify({
+      image: imageData,
+      required_ppe: getRequiredPPE()
+    }));
+  }
+
+  function updateUI(data) {
+    // Atualiza imagem anotada
+    if (data.annotated_image) {
+      const img = new Image();
+      img.onload = () => {
+        outputCanvas.width = video.videoWidth || 640;
+        outputCanvas.height = video.videoHeight || 480;
+        outCtx.drawImage(img, 0, 0, outputCanvas.width, outputCanvas.height);
+      };
+      img.src = 'data:image/jpeg;base64,' + data.annotated_image;
+    }
+
+    // Status de conformidade
+    const status = document.getElementById('complianceStatus');
+    if (!data.person_detected) {
+      status.className = 'status-indicator status-neutral';
+      status.innerHTML = '<div class="dot dot-neutral"></div>Aguardando pessoa...';
+    } else if (data.compliance) {
+      status.className = 'status-indicator status-ok';
+      status.innerHTML = '<div class="dot dot-ok"></div>✓ CONFORME';
+    } else {
+      status.className = 'status-indicator status-fail';
+      status.innerHTML = '<div class="dot dot-fail"></div>⚠ NÃO CONFORME';
+    }
+
+    // Lista de detecções
+    const list = document.getElementById('detectionList');
+    if (data.detections.length === 0) {
+      list.innerHTML = '<div class="det-item det-info">Nenhuma detecção</div>';
+    } else {
+      list.innerHTML = data.detections.map(d => `
+        <div class="det-item ${d.is_violation ? 'det-violation' : d.class === 'Person' ? 'det-info' : 'det-ok'}">
+          <span>${d.is_violation ? '⚠' : d.class === 'Person' ? '👤' : '✓'} ${d.class}</span>
+          <span class="conf">${(d.confidence * 100).toFixed(0)}%</span>
+        </div>`).join('');
+    }
+
+    // Log de violações
+    if (data.violations && data.violations.length > 0) {
+      log(`VIOLAÇÃO: ${data.violations.join(', ')}`, 'err');
+    }
+  }
+
+  function stopDetection() {
+    isRunning = false;
+    if (ws) ws.close();
+    if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+    outCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+    document.getElementById('btnStart').disabled = false;
+    document.getElementById('btnStop').disabled = true;
+    document.getElementById('complianceStatus').className = 'status-indicator status-neutral';
+    document.getElementById('complianceStatus').innerHTML = '<div class="dot dot-neutral"></div>Câmera parada';
+    document.getElementById('fpsDisplay').textContent = '0';
+    log('Câmera parada', 'info');
+  }
+</script>
+</body>
+</html>
