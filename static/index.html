@@ -250,7 +250,7 @@
 
   async function startDetection() {
     try {
-      videoStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
       video.srcObject = videoStream;
       await video.play();
 
