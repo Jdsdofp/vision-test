@@ -293,8 +293,8 @@
 
       log('Câmera iniciada', 'ok');
     } catch (err) {
-      log(`Erro: ${err.message}`, 'err');
-      alert('Não foi possível acessar a câmera: ' + err.message);
+      log(`Erro: ${err.name} - ${err.message}`, 'err');
+      alert(`Erro câmera:\nNome: ${err.name}\nMensagem: ${err.message}`);
     }
   }
 
