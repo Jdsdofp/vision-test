@@ -255,7 +255,7 @@
       await video.play();
 
       // Conecta WebSocket
-      const wsUrl = `ws://${location.host}/ws/camera`;
+      const wsUrl = `wss://${location.host}/ws/camera`;
       ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
